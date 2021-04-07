@@ -1,0 +1,14 @@
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+bin/
+.cache/
+.vscode/
+lib/
+compile_commands.json
+Makefile
+build/
+Makefile.bak
+run-clang-format.py
+test.c
+grammar.txt

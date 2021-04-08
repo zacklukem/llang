@@ -51,7 +51,10 @@ TEST(Source, GetLine) {
 
 TEST(Source, GetLocation) {
   auto source = std::make_shared<parser::Source>("first line\nsecond line\nthird line");
-  ASSERT_EQ(source->getLocation(4), std::pair(static_cast<std::size_t>(1), static_cast<std::size_t>(5)));
-  ASSERT_EQ(source->getLocation(13), std::pair(static_cast<std::size_t>(2), static_cast<std::size_t>(3)));
-  ASSERT_EQ(source->getLocation(27), std::pair(static_cast<std::size_t>(3), static_cast<std::size_t>(5)));
+  ASSERT_EQ(source->getLocation(4),
+            std::pair(static_cast<std::size_t>(1), static_cast<std::size_t>(5)));
+  ASSERT_EQ(source->getLocation(13),
+            std::pair(static_cast<std::size_t>(2), static_cast<std::size_t>(3)));
+  ASSERT_EQ(source->getLocation(27),
+            std::pair(static_cast<std::size_t>(3), static_cast<std::size_t>(5)));
 }

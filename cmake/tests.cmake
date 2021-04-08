@@ -4,9 +4,11 @@ set(TEST_SOURCES
   tests/all.cc
   tests/lexer.cc
   tests/source.cc
+  tests/parser.cc
   src/ast.cc
   src/lexer.cc
   src/source.cc
+  src/parser.cc
 )
 
 add_executable(test_llang ${TEST_SOURCES})

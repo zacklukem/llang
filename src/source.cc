@@ -22,8 +22,19 @@ bool Source::debugPrintMessages() const {
     auto location = getLocation(message->span.start);
     auto line = getLine(location.first);
     auto trimmed = boost::trim_left_copy(line);
-    std::cout << (path.empty() ? "dummy/path/to/file.ext" : path) << ":" << location.first << ":" << location.second
-              << "\n";
+    switch (message->type) {
+      case ERROR:
+        std::cout << "\033[1;31merror: \033[0m";
+        break;
+      case NOTE:
+        std::cout << "\033[1;34mnote: \033[0m";
+        break;
+      case WARNING:
+        std::cout << "\033[1;33mwarning: \033[0m";
+        break;
+    }
+    std::cout << (path.empty() ? "dummy/path/to/file.ext" : path) << ":" << location.first << ":"
+              << location.second << "\n";
     std::cout << trimmed << "\n";
     std::cout << std::string(location.second - 1 - (line.size() - trimmed.size()), ' ') << "^";
     std::cout << "  " << message->message.str() << "\n";

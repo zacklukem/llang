@@ -3,11 +3,19 @@
 
 using namespace llang;
 
-char Lexer::nextCh() { return source->value.at(current_span.length++ + current_span.start); }
+char Lexer::nextCh() {
+  if (eof())
+    return ' ';
+  return source->value.at(current_span.length++ + current_span.start);
+}
 
 char Lexer::peekCh() { return peekCh(0); }
 
-char Lexer::peekCh(std::size_t i) { return source->value.at(current_span.length + current_span.start + i); }
+char Lexer::peekCh(std::size_t i) {
+  if (eof())
+    return ' ';
+  return source->value.at(current_span.length + current_span.start + i);
+}
 
 bool alpha(char c) { return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z'); }
 
@@ -18,10 +26,14 @@ bool dot(char c) { return (c == '.'); }
 bool whitespace(char c) { return (c == ' ' || c == '\n' || c == '\t'); }
 
 bool identifier(char c) { return alpha(c) || numeric(c) || c == '_'; }
+bool identifierFirst(char c) { return alpha(c) || c == '_'; }
 
 bool notQuote(char c) { return c != '"'; }
+bool notNL(char c) { return c != '\n'; }
 
-inline bool Lexer::eof() { return (current_span.length + current_span.start >= (source->value.size())); }
+inline bool Lexer::eof() {
+  return (current_span.length + current_span.start >= (source->value.size()));
+}
 
 bool Lexer::eat(EatTestFn fn) {
   auto peeked = peekCh();
@@ -92,6 +104,10 @@ Token Lexer::lexNext() {
     return Token(TokenType::OPEN_BRACE, closeSpan());
   case '}':
     return Token(TokenType::CLOSE_BRACE, closeSpan());
+  case '[':
+    return Token(TokenType::OPEN_SQUARE, closeSpan());
+  case ']':
+    return Token(TokenType::CLOSE_SQUARE, closeSpan());
   case '+':
     return Token(TokenType::ADD, closeSpan());
   case '-':
@@ -99,11 +115,18 @@ Token Lexer::lexNext() {
   case '*':
     return Token(TokenType::MUL, closeSpan());
   case '/':
+    if (peekCh() == '/') {
+      consume(notNL);
+      closeSpan();
+      return lexNext();
+    }
     return Token(TokenType::DIV, closeSpan());
   case ',':
     return Token(TokenType::COMMA, closeSpan());
   case ':':
     return Token(TokenType::COLON, closeSpan());
+  case ';':
+    return Token(TokenType::SEMICOLON, closeSpan());
   case '<':
     if (eat('='))
       return Token(TokenType::LE, closeSpan());
@@ -117,14 +140,22 @@ Token Lexer::lexNext() {
       return Token(TokenType::DEQ, closeSpan());
     return Token(TokenType::EQ, closeSpan());
     // return Token(TokenType::WHITESPACE, closeSpan());
+  case '"':
+    closeSpan();
+    consume(notQuote);
+    auto sp = closeSpan();
+    eat('"');
+    closeSpan();
+    return Token(TokenType::STRING, sp);
   }
+
   if (whitespace(next)) {
     consume(whitespace);
     closeSpan();
     return lexNext();
   }
 
-  if (identifier(next)) {
+  if (identifierFirst(next)) {
     consume(identifier);
     auto v = current_span.getValue();
     if (v == "function")
@@ -133,15 +164,22 @@ Token Lexer::lexNext() {
       return Token(TokenType::IF, closeSpan());
     else if (v == "else")
       return Token(TokenType::ELSE, closeSpan());
+    else if (v == "while")
+      return Token(TokenType::WHILE, closeSpan());
+    else if (v == "let")
+      return Token(TokenType::LET, closeSpan());
     else if (v == "return")
       return Token(TokenType::RETURN, closeSpan());
     return Token(TokenType::IDENT, closeSpan());
   }
 
   if (numeric(next)) {
-    eat(dot);
     consume(numeric);
-    return Token(TokenType::NUMBER, closeSpan());
+    if (eat(dot)) {
+      consume(numeric);
+      return Token(TokenType::FLOAT, closeSpan());
+    }
+    return Token(TokenType::INT, closeSpan());
   }
 
   // return Token(TokenType::END_OF_FILE, closeSpan());
@@ -174,6 +212,8 @@ const Token& Lexer::peek(std::size_t n) {
 
 bool Lexer::peekEq(TokenType type) { return peek().type == type; }
 
-std::ostream& Token::expect(TokenType kind, MessageType m_type) { return value.expect(type == kind, m_type); }
+std::ostream& Token::expect(TokenType kind, MessageType m_type) {
+  return value.expect(type == kind, m_type);
+}
 
 std::ostream& Token::fail(MessageType m_type) { return value.fail(m_type); }

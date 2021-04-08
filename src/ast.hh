@@ -7,6 +7,7 @@
 
 namespace llang {
 
+
 class Node {
 public:
   Node(std::shared_ptr<State> state) : state(state){};
@@ -14,6 +15,53 @@ public:
   std::shared_ptr<State> state;
   virtual ~Node(){};
   virtual llvm::Value* codegen() = 0;
+};
+
+class Document : public Node {
+public:
+  std::vector<std::unique_ptr<Node>> data;
+  Document(std::shared_ptr<State> state) : Node(state){};
+  virtual llvm::Value* codegen() override;
+};
+class Type {
+public:
+  Type(std::shared_ptr<State> state) : state(state){};
+  Type() = delete;
+  std::shared_ptr<State> state;
+  virtual ~Type(){};
+  virtual llvm::Type* codegen() = 0;
+};
+
+class PtrType : public Type {
+public:
+  std::shared_ptr<Type> type;
+  PtrType(std::shared_ptr<State> state, std::shared_ptr<Type> type)
+      : Type(state), type(std::move(type)){};
+  PtrType() = delete;
+  virtual llvm::Type* codegen() override;
+};
+
+class IntType : public Type {
+public:
+  uint8_t size;
+  IntType(std::shared_ptr<State> state, uint8_t size) : Type(state), size(size){};
+  IntType() = delete;
+  virtual llvm::Type* codegen() override;
+};
+
+class FloatType : public Type {
+public:
+  uint8_t size;
+  FloatType(std::shared_ptr<State> state, uint8_t size) : Type(state), size(size){};
+  FloatType() = delete;
+  virtual llvm::Type* codegen() override;
+};
+
+class VoidType : public Type {
+public:
+  VoidType(std::shared_ptr<State> state) : Type(state) {};
+  VoidType() = delete;
+  virtual llvm::Type* codegen() override;
 };
 
 class Statement : public Node {
@@ -37,14 +85,27 @@ public:
   Expression(std::shared_ptr<State> state) : Statement(state){};
 };
 
+class LetStatement : public Statement {
+public:
+  std::string name;
+  std::shared_ptr<Type> type;
+  std::optional<std::unique_ptr<Expression>> rhs;
+
+  LetStatement(std::shared_ptr<State> state, std::shared_ptr<Type> type, std::string name,
+               std::optional<std::unique_ptr<Expression>> rhs = std::nullopt)
+      : Statement(state), type(std::move(type)), name(name), rhs(std::move(rhs)){};
+
+  virtual llvm::Value* codegen() override;
+};
+
 class ReturnStatement : public Statement {
 public:
-  std::unique_ptr<Expression> rhs;
+  std::optional<std::unique_ptr<Expression>> rhs;
 
-  ReturnStatement(std::shared_ptr<State> state, std::unique_ptr<Expression> rhs)
+  ReturnStatement(std::shared_ptr<State> state, std::optional<std::unique_ptr<Expression>> rhs)
       : Statement(state), rhs(std::move(rhs)){};
 
-  ReturnStatement(std::unique_ptr<Expression> rhs) : Statement(rhs->state), rhs(std::move(rhs)){};
+  ReturnStatement(std::unique_ptr<Expression> rhs) : Statement(rhs->state), rhs(std::move(std::make_optional(std::move(rhs)))){};
 
   virtual llvm::Value* codegen() override;
 };
@@ -62,6 +123,33 @@ public:
   virtual llvm::Value* codegen() override;
 };
 
+class WhileStatement : public Statement {
+public:
+  std::unique_ptr<Expression> cond;
+  Block body;
+
+  WhileStatement(std::shared_ptr<State> state, std::unique_ptr<Expression> cond, Block body)
+      : Statement(state), cond(std::move(cond)), body(std::move(body)){};
+  WhileStatement(std::unique_ptr<Expression> cond, Block body)
+      : Statement(cond->state), cond(std::move(cond)), body(std::move(body)){};
+
+  virtual llvm::Value* codegen() override;
+};
+
+class AssignExpr : public Expression {
+public:
+  std::string lhs;
+  std::unique_ptr<Expression> rhs;
+
+  AssignExpr(std::shared_ptr<State> state, std::string lhs, std::unique_ptr<Expression> rhs)
+      : Expression(state), lhs(lhs), rhs(std::move(rhs)){};
+
+  AssignExpr(std::string lhs, std::unique_ptr<Expression> rhs)
+      : Expression(rhs->state), lhs(lhs), rhs(std::move(rhs)){};
+
+  virtual llvm::Value* codegen() override;
+};
+
 class BinaryExpr : public Expression {
 public:
   enum Op { ADD, SUB, DIV, MUL, EQ, LT, GT, LTE, GTE };
@@ -69,7 +157,8 @@ public:
   std::unique_ptr<Expression> lhs;
   std::unique_ptr<Expression> rhs;
 
-  BinaryExpr(std::shared_ptr<State> state, Op oper, std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs)
+  BinaryExpr(std::shared_ptr<State> state, Op oper, std::unique_ptr<Expression> lhs,
+             std::unique_ptr<Expression> rhs)
       : Expression(state), oper(oper), lhs(std::move(lhs)), rhs(std::move(rhs)){};
 
   BinaryExpr(Op oper, std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs)
@@ -87,7 +176,8 @@ public:
   UnaryExpr(std::shared_ptr<State> state, Op oper, std::unique_ptr<Expression> rhs)
       : Expression(state), oper(oper), rhs(std::move(rhs)){};
 
-  UnaryExpr(Op oper, std::unique_ptr<Expression> rhs) : Expression(rhs->state), oper(oper), rhs(std::move(rhs)){};
+  UnaryExpr(Op oper, std::unique_ptr<Expression> rhs)
+      : Expression(rhs->state), oper(oper), rhs(std::move(rhs)){};
 
   virtual llvm::Value* codegen() override;
 };
@@ -97,7 +187,8 @@ public:
   std::string target;
   std::vector<std::unique_ptr<Expression>> args;
 
-  CallExpr(std::shared_ptr<State> state, std::string target, std::vector<std::unique_ptr<Expression>> args)
+  CallExpr(std::shared_ptr<State> state, std::string target,
+           std::vector<std::unique_ptr<Expression>> args)
       : Expression(state), target(target), args(std::move(args)){};
 
   virtual llvm::Value* codegen() override;
@@ -111,25 +202,51 @@ public:
   virtual llvm::Value* codegen() override;
 };
 
-enum Type { NUMBER };
+class ArrayAccessExpr : public Expression {
+public:
+  std::unique_ptr<VariableExpr> target;
+  std::unique_ptr<Expression> index;
 
-class NumberLiteral : public Expression {
+  ArrayAccessExpr(std::shared_ptr<State> state, std::unique_ptr<VariableExpr> target,
+           std::unique_ptr<Expression> index)
+      : Expression(state), target(std::move(target)), index(std::move(index)){};
+
+  virtual llvm::Value* codegen() override;
+};
+
+class FloatLiteral : public Expression {
 public:
   double value;
 
-  NumberLiteral(std::shared_ptr<State> state, double value) : Expression(state), value(value){};
+  FloatLiteral(std::shared_ptr<State> state, double value) : Expression(state), value(value){};
+  virtual llvm::Value* codegen() override;
+};
+
+class StringLiteral : public Expression {
+public:
+  std::string value;
+
+  StringLiteral(std::shared_ptr<State> state, std::string value) : Expression(state), value(value){};
+  virtual llvm::Value* codegen() override;
+};
+
+class IntLiteral : public Expression {
+public:
+  int64_t value;
+
+  IntLiteral(std::shared_ptr<State> state, int64_t value) : Expression(state), value(value){};
   virtual llvm::Value* codegen() override;
 };
 
 class ProtoFunc : public Node {
 public:
   std::string name;
-  Type return_type;
-  std::vector<std::pair<Type, std::string>> args;
+  std::shared_ptr<Type> return_type;
+  std::vector<std::pair<std::shared_ptr<Type>, std::string>> args;
 
-  ProtoFunc(std::shared_ptr<State> state, const std::string& name, Type return_type,
-            std::vector<std::pair<Type, std::string>> args)
-      : Node(state), name(name), return_type(return_type), args(std::move(args)){};
+  ProtoFunc(std::shared_ptr<State> state, std::string name, std::shared_ptr<Type> return_type,
+            std::vector<std::pair<std::shared_ptr<Type>, std::string>> args)
+      : Node(state), name(name), return_type(std::move(return_type)), args(std::move(args)){};
 
   virtual llvm::Value* codegen() override { return proto_codegen(); };
   llvm::Function* proto_codegen();

@@ -18,6 +18,8 @@ enum TokenType {
   CLOSE_PAREN,
   OPEN_BRACE,
   CLOSE_BRACE,
+  OPEN_SQUARE,
+  CLOSE_SQUARE,
   ADD,
   SUB,
   MUL,
@@ -34,8 +36,13 @@ enum TokenType {
   COLON,
   IF,
   ELSE,
+  WHILE,
   RETURN,
-  NUMBER
+  FLOAT,
+  INT,
+  SEMICOLON,
+  LET,
+  STRING
 };
 
 class Token {
@@ -56,6 +63,9 @@ public:
   Lexer(std::shared_ptr<Source> source) : source(source), current_span(source) {}
   Token next();
   bool peekEq(TokenType type);
+  template <class... Args> bool peekEq(TokenType type, Args... args) {
+    return peek().type == type || peekEq(args...);
+  }
   const Token& peek(std::size_t n = 0);
 
 private:

@@ -1,0 +1,14 @@
+function print(string: str): void {
+  puts(string)
+  return;
+}
+
+function main(argc: i64, argv: str*): i64 {
+  let i: i64 = 0;
+  while (i < argc) {
+    print(argv[i])
+    i = i + 1
+  }
+  print("Hello, World!")
+  return 0
+}

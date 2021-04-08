@@ -4,7 +4,6 @@ file(GLOB FORMAT_FILES
   tests/*.cc
 )
 
-
 add_custom_target(
   lint
   COMMAND clang-format -Werror -n
@@ -14,5 +13,4 @@ add_custom_target(
   format
   COMMAND clang-format -i
   ${FORMAT_FILES}
-
 )

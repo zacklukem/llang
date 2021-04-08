@@ -7,7 +7,6 @@
 
 namespace llang {
 
-
 class Node {
 public:
   Node(std::shared_ptr<State> state) : state(state){};
@@ -59,7 +58,7 @@ public:
 
 class VoidType : public Type {
 public:
-  VoidType(std::shared_ptr<State> state) : Type(state) {};
+  VoidType(std::shared_ptr<State> state) : Type(state){};
   VoidType() = delete;
   virtual llvm::Type* codegen() override;
 };
@@ -105,7 +104,8 @@ public:
   ReturnStatement(std::shared_ptr<State> state, std::optional<std::unique_ptr<Expression>> rhs)
       : Statement(state), rhs(std::move(rhs)){};
 
-  ReturnStatement(std::unique_ptr<Expression> rhs) : Statement(rhs->state), rhs(std::move(std::make_optional(std::move(rhs)))){};
+  ReturnStatement(std::unique_ptr<Expression> rhs)
+      : Statement(rhs->state), rhs(std::move(std::make_optional(std::move(rhs)))){};
 
   virtual llvm::Value* codegen() override;
 };
@@ -208,7 +208,7 @@ public:
   std::unique_ptr<Expression> index;
 
   ArrayAccessExpr(std::shared_ptr<State> state, std::unique_ptr<VariableExpr> target,
-           std::unique_ptr<Expression> index)
+                  std::unique_ptr<Expression> index)
       : Expression(state), target(std::move(target)), index(std::move(index)){};
 
   virtual llvm::Value* codegen() override;
@@ -226,7 +226,8 @@ class StringLiteral : public Expression {
 public:
   std::string value;
 
-  StringLiteral(std::shared_ptr<State> state, std::string value) : Expression(state), value(value){};
+  StringLiteral(std::shared_ptr<State> state, std::string value)
+      : Expression(state), value(value){};
   virtual llvm::Value* codegen() override;
 };
 

@@ -9,14 +9,14 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Type.h>
-#include <llvm/IR/LegacyPassManager.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Host.h>
-#include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/TargetRegistry.h>
 #include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/raw_ostream.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
 
@@ -26,12 +26,12 @@
 
 #include "parser.hh"
 
+#include <cerrno>
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <cerrno>
 
-std::string get_file_contents(const char *filename) {
+std::string get_file_contents(const char* filename) {
   std::ifstream in(filename, std::ios::in | std::ios::binary);
   if (in) {
     std::ostringstream contents;
@@ -81,7 +81,7 @@ int main() {
 
   state->mod->print(llvm::errs(), nullptr);
 
-// Initialize the target registry etc.
+  // Initialize the target registry etc.
   llvm::InitializeAllTargetInfos();
   llvm::InitializeAllTargets();
   llvm::InitializeAllTargetMCs();
@@ -107,8 +107,7 @@ int main() {
 
   llvm::TargetOptions opt;
   auto rm = llvm::Optional<llvm::Reloc::Model>();
-  auto theTargetMachine =
-      target->createTargetMachine(targetTriple, cpu, features, opt, rm);
+  auto theTargetMachine = target->createTargetMachine(targetTriple, cpu, features, opt, rm);
 
   state->mod->setDataLayout(theTargetMachine->createDataLayout());
 
@@ -133,5 +132,4 @@ int main() {
   dest.flush();
 
   llvm::outs() << "Wrote " << filename << "\n";
-
 }

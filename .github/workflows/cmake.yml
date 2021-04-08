@@ -13,8 +13,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: sudo apt-get install llvm clang libboost-all-dev libgtest-dev
-    - working-directory: ${{github.workspace}}
-    - run: cmake --build .
+    - name: Setup
+      - working-directory: ${{github.workspace}}
+      - run: cmake .
 
     - name: Build
       working-directory: ${{github.workspace}}

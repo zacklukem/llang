@@ -126,7 +126,7 @@ llvm::Value* DotExpr::codegen() {
   auto left = lhs->codegen();
   state->unsetAddrMode(c);
   auto name = left->getType()->getPointerElementType()->getStructName().str();
-  auto gep = state->builder->CreateStructGEP(left,state->structures[name].second[rhs]);
+  auto gep = state->builder->CreateStructGEP(left, state->structures[name].second[rhs]);
   if (state->getAddrMode()) {
     return gep;
   }

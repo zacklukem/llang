@@ -92,7 +92,7 @@ public:
 class Expression : public Statement {
 public:
   Expression(std::shared_ptr<State> state) : Statement(state){};
-  virtual std::unique_ptr<Expression> clone() const {return nullptr;};
+  virtual std::unique_ptr<Expression> clone() const { return nullptr; };
 };
 
 class LetStatement : public Statement {
@@ -172,7 +172,8 @@ public:
   std::unique_ptr<Expression> lhs;
   std::unique_ptr<Expression> rhs;
 
-  AssignExpr(std::shared_ptr<State> state, std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs)
+  AssignExpr(std::shared_ptr<State> state, std::unique_ptr<Expression> lhs,
+             std::unique_ptr<Expression> rhs)
       : Expression(state), lhs(std::move(lhs)), rhs(std::move(rhs)){};
 
   AssignExpr(std::unique_ptr<Expression> lhs, std::unique_ptr<Expression> rhs)

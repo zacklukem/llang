@@ -18,17 +18,14 @@ public:
     is_addr_mode = true;
     return c;
   };
-  inline void unsetAddrMode(bool c) {
-    is_addr_mode = c;
-  };
-  inline bool getAddrMode() {
-    return is_addr_mode;
-  };
+  inline void unsetAddrMode(bool c) { is_addr_mode = c; };
+  inline bool getAddrMode() { return is_addr_mode; };
   State(std::unique_ptr<llvm::LLVMContext> ctx, std::unique_ptr<llvm::Module> mod,
         std::unique_ptr<llvm::IRBuilder<>> builder,
         std::map<std::string, std::pair<llvm::AllocaInst*, llvm::Type*>> named_values)
       : ctx(std::move(ctx)), mod(std::move(mod)), builder(std::move(builder)),
         named_values(std::move(named_values)){};
+
 private:
   bool is_addr_mode = false;
 };

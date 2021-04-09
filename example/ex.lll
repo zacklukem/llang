@@ -11,13 +11,13 @@ struct MyStruct {
 
 function fib(ms: MyStruct*): void {
   let out: str = malloc(10)
-  (*ms).a = 1
-  (*ms).b = 1
-  for (let i: i64 = 0; i < (*ms).n; i += 1) {
-    let temp: i64 = (*ms).b;
-    (*ms).b += (*ms).a;
-    (*ms).a = temp
-    sprintf(out, "%lld", (*ms).b)
+  ms->a = 1
+  ms->b = 1
+  for (let i: i64 = 0; i < ms->n; i += 1) {
+    let temp: i64 = (*ms).b
+    ms->b += ms->a
+    ms->a = temp
+    sprintf(out, "%lld", ms->b)
     puts(out)
   }
   free(out)

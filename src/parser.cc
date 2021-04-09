@@ -339,11 +339,22 @@ std::unique_ptr<Expression> Parser::parseUnary() {
 
 std::unique_ptr<Expression> Parser::parseDotOp() {
   auto lhs = parsePrimary();
-  while (lexer.peekEq(TokenType::DOT)) {
-    lexer.next().expect(TokenType::DOT) << "dot op internal error";
+  while (lexer.peekEq(TokenType::DOT, TokenType::SUB_GT)) {
+    auto op_tok = lexer.next();
     auto ident = lexer.next();
     ident.expect(TokenType::IDENT) << "expected identifier";
-    lhs = std::make_unique<DotExpr>(std::move(lhs), ident.value.getValue());
+    switch (op_tok.type) {
+    case TokenType::DOT:
+      lhs = std::make_unique<DotExpr>(std::move(lhs), ident.value.getValue());
+      break;
+    case TokenType::SUB_GT:
+      lhs = std::make_unique<DotExpr>(
+          std::make_unique<UnaryExpr>(UnaryExpr::Op::DEREF, std::move(lhs)),
+          ident.value.getValue());
+      break;
+    default:
+      break;
+    }
   }
   return lhs;
 }

@@ -117,6 +117,8 @@ Token Lexer::lexNext() {
       return Token(TokenType::ADD_EQ, closeSpan());
     return Token(TokenType::ADD, closeSpan());
   case '-':
+    if (eat('>'))
+      return Token(TokenType::SUB_GT, closeSpan());
     if (eat('='))
       return Token(TokenType::SUB_EQ, closeSpan());
     return Token(TokenType::SUB, closeSpan());

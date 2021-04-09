@@ -50,7 +50,8 @@ enum TokenType {
   STRING,
   STRUCT,
   DOT,
-  AND
+  AND,
+  SUB_GT
 };
 
 class Token {

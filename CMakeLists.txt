@@ -81,6 +81,6 @@ include(cmake/tests.cmake)
 
 add_custom_target(
   run
-  COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llang
+  COMMAND cd ./example && ./build.sh
   DEPENDS llang
 )

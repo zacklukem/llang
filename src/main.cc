@@ -29,7 +29,9 @@
 #include <cerrno>
 #include <fstream>
 #include <sstream>
+#include <iostream>
 #include <string>
+#include <filesystem>
 
 std::string get_file_contents(const char* filename) {
   std::ifstream in(filename, std::ios::in | std::ios::binary);
@@ -42,9 +44,13 @@ std::string get_file_contents(const char* filename) {
   throw errno;
 }
 
-int main() {
-  std::string str = get_file_contents("example/ex.lll");
-  auto source = std::make_shared<llang::Source>(str, "example/ex.lll");
+int main(int argc, char** argv) {
+  if (argc < 2) {
+    std::cout << "Usage: llang <file>";
+  }
+  auto file_fs = std::filesystem::path(argv[1]);
+  std::string str = get_file_contents(file_fs.c_str());
+  auto source = std::make_shared<llang::Source>(str, file_fs.generic_string());
 
   // Open a new context and module.
   auto ctx = std::make_unique<llvm::LLVMContext>();
@@ -98,7 +104,7 @@ int main() {
 
   state->mod->setDataLayout(theTargetMachine->createDataLayout());
 
-  auto filename = "output.o";
+  auto filename = file_fs.replace_extension(".o").generic_string();
   std::error_code ec;
   llvm::raw_fd_ostream dest(filename, ec, llvm::sys::fs::OF_None);
 

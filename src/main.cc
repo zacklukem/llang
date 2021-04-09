@@ -59,19 +59,6 @@ int main() {
 
   llang::Parser parser(source, state);
 
-  std::vector<llvm::Type*> args{llvm::Type::getDoubleTy(*state->ctx)};
-  llvm::FunctionType* ft = llvm::FunctionType::get(llvm::Type::getVoidTy(*state->ctx), args, false);
-
-  llvm::Function* f =
-      llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "putd", state->mod.get());
-
-  std::vector<llvm::Type*> args2{llvm::Type::getInt8PtrTy(*state->ctx)};
-  llvm::FunctionType* ft2 =
-      llvm::FunctionType::get(llvm::Type::getVoidTy(*state->ctx), args2, false);
-
-  llvm::Function* f2 =
-      llvm::Function::Create(ft2, llvm::Function::ExternalLinkage, "puts", state->mod.get());
-
   auto func = parser.parseDocument();
   if (!source->debugPrintMessages()) {
     func->codegen();

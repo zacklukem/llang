@@ -1,14 +1,32 @@
-function print(string: str): void {
-  puts(string)
+function puts(string: str): void;
+function malloc(size: i64): void*;
+function free(ptr: str): void;
+function sprintf(ptr: str, val: str, t: i64): i64;
+
+struct MyStruct {
+  a: i64;
+  b: i64;
+  n: i64;
+}
+
+function fib(ms: MyStruct*): void {
+  let out: str = malloc(10)
+  (*ms).a = 1
+  (*ms).b = 1
+  for (let i: i64 = 0; i < (*ms).n; i += 1) {
+    let temp: i64 = (*ms).b;
+    (*ms).b += (*ms).a;
+    (*ms).a = temp
+    sprintf(out, "%lld", (*ms).b)
+    puts(out)
+  }
+  free(out)
   return;
 }
 
 function main(argc: i64, argv: str*): i64 {
-  let i: i64 = 0;
-  while (i < argc) {
-    print(argv[i])
-    i = i + 1
-  }
-  print("Hello, World!")
+  let init: MyStruct;
+  init.n = 10;
+  fib(&init)
   return 0
 }

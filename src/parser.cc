@@ -7,12 +7,22 @@ using namespace llang;
 std::unique_ptr<Document> Parser::parseDocument() {
   auto doc = std::make_unique<Document>(state);
   while (!lexer.peekEq(TokenType::END_OF_FILE)) {
-    doc->data.push_back(parseFunction());
+    switch (lexer.peek().type) {
+    case TokenType::FUNCTION:
+      doc->data.push_back(parseFunction());
+      break;
+    case TokenType::STRUCT:
+      doc->data.push_back(parseStructDecl());
+      break;
+    default:
+      lexer.next().fail() << "Unexpected token";
+      return std::move(doc);
+    }
   }
   return std::move(doc);
 }
 
-std::unique_ptr<FunctionDecl> Parser::parseFunction() {
+std::unique_ptr<Node> Parser::parseFunction() {
   lexer.next().expect(TokenType::FUNCTION) << "Expected function keyword (internal error)";
   auto func_name = lexer.next();
   func_name.expect(TokenType::IDENT) << "Expected function keyword (internal error)";
@@ -33,12 +43,36 @@ std::unique_ptr<FunctionDecl> Parser::parseFunction() {
   lexer.next().expect(TokenType::COLON) << "Unexpected token (expected ':')";
   auto return_type = parseTypeName();
 
-  auto body = parseBlock();
-
   auto proto_func =
       std::make_unique<ProtoFunc>(state, func_name.value.getValue(), return_type, arguments);
 
+  if (lexer.peekEq(TokenType::SEMICOLON)) {
+    lexer.next();
+    return std::make_unique<ExternDecl>(state, std::move(proto_func));
+  }
+
+  auto body = parseBlock();
+
   return std::make_unique<FunctionDecl>(state, std::move(proto_func), std::move(body));
+}
+
+std::unique_ptr<Node> Parser::parseStructDecl() {
+  lexer.next().expect(TokenType::STRUCT) << "Expected struct keyword (internal error)";
+  auto struct_name = lexer.next();
+  struct_name.expect(TokenType::IDENT) << "Expected ident";
+  lexer.next().expect(TokenType::OPEN_BRACE) << "Expected open brace";
+  auto str = std::make_unique<StructProto>(state, struct_name.value.getValue());
+  // parse fields
+  while (!lexer.peekEq(TokenType::CLOSE_BRACE)) {
+    auto name = lexer.next();
+    name.expect(TokenType::IDENT) << "expected identifier";
+    lexer.next().expect(TokenType::COLON) << "expected colon";
+    auto type = parseTypeName();
+    lexer.next().expect(TokenType::SEMICOLON);
+    str->fields.push_back(std::make_pair(name.value.getValue(), type));
+  }
+  lexer.next().expect(TokenType::CLOSE_BRACE) << "Unexpected token (expected '}')";
+  return std::move(str);
 }
 
 Block Parser::parseBlock() {
@@ -66,6 +100,8 @@ std::unique_ptr<Statement> Parser::parseStatement() {
     return parseLetStatement();
   case WHILE:
     return parseWhileStatement();
+  case FOR:
+    return parseForStatement();
   default:
     return parseExpression();
   }
@@ -141,17 +177,64 @@ std::unique_ptr<Statement> Parser::parseWhileStatement() {
   return std::make_unique<WhileStatement>(std::move(expr), std::move(body));
 }
 
+std::unique_ptr<Statement> Parser::parseForStatement() {
+  lexer.next().expect(TokenType::FOR) << "for stmt internal error";
+  lexer.next().expect(TokenType::OPEN_PAREN) << "expected open paren";
+  auto init = parseStatement();
+  lexer.next().expect(TokenType::SEMICOLON) << "expected semi";
+  auto expr = parseExpression();
+  lexer.next().expect(TokenType::SEMICOLON) << "expected semi";
+  auto inc = parseExpression();
+  lexer.next().expect(TokenType::CLOSE_PAREN) << "expected close paren";
+
+  auto body = parseBlock();
+
+  return std::make_unique<ForStatement>(std::move(init), std::move(expr), std::move(inc),
+                                        std::move(body));
+}
+
 std::unique_ptr<Expression> Parser::parseExpression() { return parseAssign(); }
 
 std::unique_ptr<Expression> Parser::parseAssign() {
-  if (lexer.peekEq(TokenType::IDENT) && lexer.peek(1).type == TokenType::EQ) {
-    auto ident = lexer.next();
-    ident.expect(TokenType::IDENT) << "expect ident internal error";
-    lexer.next().expect(TokenType::EQ) << "expect eq internal error"; // '='
-    auto expr = parseExpression();
-    return std::make_unique<AssignExpr>(ident.value.getValue(), std::move(expr));
+  auto lhs = parseComparison();
+  while (lexer.peekEq(TokenType::EQ, TokenType::ADD_EQ, TokenType::MUL_EQ, TokenType::SUB_EQ,
+                      TokenType::DIV_EQ)) {
+    switch (lexer.peek().type) {
+    case EQ: {
+      // auto ident = lexer.next();
+      // ident.expect(TokenType::IDENT) << "expect ident internal error";
+      lexer.next().expect(TokenType::EQ) << "expect eq internal error"; // '='
+      auto expr = parseExpression();
+      lhs = std::make_unique<AssignExpr>(std::move(lhs), std::move(expr));
+      break;
+    }
+    case ADD_EQ:
+    case MUL_EQ:
+    case SUB_EQ:
+    case DIV_EQ: {
+      // auto ident = lexer.next();
+      // ident.expect(TokenType::IDENT) << "expect ident internal error";
+      auto op_tok = lexer.next();
+      auto expr = parseExpression();
+      BinaryExpr::Op op;
+      if (op_tok.type == TokenType::ADD_EQ)
+        op = BinaryExpr::Op::ADD;
+      else if (op_tok.type == TokenType::SUB_EQ)
+        op = BinaryExpr::Op::SUB;
+      else if (op_tok.type == TokenType::DIV_EQ)
+        op = BinaryExpr::Op::DIV;
+      else if (op_tok.type == TokenType::MUL_EQ)
+        op = BinaryExpr::Op::MUL;
+      expr = std::make_unique<BinaryExpr>(op, lhs->clone(), std::move(expr));
+      lhs = std::make_unique<AssignExpr>(std::move(lhs), std::move(expr));
+      break;
+    }
+    default: {
+      break;
+    }
+    }
   }
-  return parseComparison();
+  return lhs;
 }
 
 std::unique_ptr<Expression> Parser::parseComparison() {
@@ -232,47 +315,38 @@ std::unique_ptr<Expression> Parser::parseMulDiv() {
 }
 
 std::unique_ptr<Expression> Parser::parseUnary() {
-  if (lexer.peekEq(TokenType::SUB)) {
-    lexer.next();
-    return std::make_unique<UnaryExpr>(UnaryExpr::Op::NEG, parseUnary());
-  }
-  return parsePrimary();
-}
-
-std::unique_ptr<Expression> Parser::parseFunctionCall() {
-  auto ident = lexer.next();
-  ident.expect(TokenType::IDENT) << "Expected ident (internal error)";
-
-  std::vector<std::unique_ptr<Expression>> args;
-
-  lexer.next().expect(TokenType::OPEN_PAREN) << "Expected open paren";
-
-  while (!lexer.peekEq(TokenType::CLOSE_PAREN)) {
-    args.push_back(parseExpression());
-    if (lexer.peekEq(TokenType::CLOSE_PAREN))
+  if (lexer.peekEq(TokenType::SUB, TokenType::MUL, TokenType::AND)) {
+    auto op_tok = lexer.next();
+    UnaryExpr::Op op;
+    switch (op_tok.type) {
+    case TokenType::SUB:
+      op = UnaryExpr::Op::NEG;
       break;
-    lexer.next().expect(TokenType::COMMA) << "Expected comma after argument";
+    case TokenType::MUL:
+      op = UnaryExpr::Op::DEREF;
+      break;
+    case TokenType::AND:
+      op = UnaryExpr::Op::REF;
+      break;
+    default:
+      op_tok.fail() << "internal error";
+      break;
+    }
+    return std::make_unique<UnaryExpr>(op, parseUnary());
   }
-
-  lexer.next().expect(TokenType::CLOSE_PAREN) << "Expected close paren";
-
-  return std::make_unique<CallExpr>(state, ident.value.getValue(), std::move(args));
+  return parseDotOp();
 }
 
-std::unique_ptr<Expression> Parser::parseArrayAccess() {
-  auto ident = lexer.next();
-  ident.expect(TokenType::IDENT) << "Expected ident (internal error)";
-  auto target = std::make_unique<VariableExpr>(state, ident.value.getValue());
-
-  lexer.next().expect(TokenType::OPEN_SQUARE) << "Expected open paren";
-
-  auto index_expr = parseExpression();
-
-  lexer.next().expect(TokenType::CLOSE_SQUARE) << "Expected close paren";
-
-  return std::make_unique<ArrayAccessExpr>(state, std::move(target), std::move(index_expr));
+std::unique_ptr<Expression> Parser::parseDotOp() {
+  auto lhs = parsePrimary();
+  while (lexer.peekEq(TokenType::DOT)) {
+    lexer.next().expect(TokenType::DOT) << "dot op internal error";
+    auto ident = lexer.next();
+    ident.expect(TokenType::IDENT) << "expected identifier";
+    lhs = std::make_unique<DotExpr>(std::move(lhs), ident.value.getValue());
+  }
+  return lhs;
 }
-
 std::unique_ptr<Expression> Parser::parsePrimary() {
   auto next = lexer.peek();
   switch (next.type) {
@@ -282,7 +356,7 @@ std::unique_ptr<Expression> Parser::parsePrimary() {
     else if (lexer.peek(1).type == TokenType::OPEN_SQUARE)
       return parseArrayAccess();
     else
-      return std::make_unique<VariableExpr>(state, lexer.next().value.getValue());
+      return parseVariable();
   }
   case TokenType::OPEN_PAREN: {
     lexer.next().expect(TokenType::OPEN_PAREN) << "internal error";
@@ -321,6 +395,44 @@ std::unique_ptr<Expression> Parser::parsePrimary() {
   }
 }
 
+std::unique_ptr<Expression> Parser::parseFunctionCall() {
+  auto ident = lexer.next();
+  ident.expect(TokenType::IDENT) << "Expected ident (internal error)";
+
+  std::vector<std::unique_ptr<Expression>> args;
+
+  lexer.next().expect(TokenType::OPEN_PAREN) << "Expected open paren";
+
+  while (!lexer.peekEq(TokenType::CLOSE_PAREN)) {
+    args.push_back(parseExpression());
+    if (lexer.peekEq(TokenType::CLOSE_PAREN))
+      break;
+    lexer.next().expect(TokenType::COMMA) << "Expected comma after argument";
+  }
+
+  lexer.next().expect(TokenType::CLOSE_PAREN) << "Expected close paren";
+
+  return std::make_unique<CallExpr>(state, ident.value.getValue(), std::move(args));
+}
+
+std::unique_ptr<Expression> Parser::parseArrayAccess() {
+  auto target = parseVariable();
+
+  lexer.next().expect(TokenType::OPEN_SQUARE) << "Expected open paren";
+
+  auto index_expr = parseExpression();
+
+  lexer.next().expect(TokenType::CLOSE_SQUARE) << "Expected close paren";
+
+  return std::make_unique<ArrayAccessExpr>(state, std::move(target), std::move(index_expr));
+}
+
+std::unique_ptr<Expression> Parser::parseVariable() {
+  auto next = lexer.next();
+  next.expect(TokenType::IDENT);
+  return std::make_unique<VariableExpr>(state, next.value.getValue());
+}
+
 std::shared_ptr<Type> Parser::parseTypeName() {
   auto next = lexer.peek();
   next.expect(TokenType::IDENT) << "Expected identifier";
@@ -355,6 +467,6 @@ std::shared_ptr<Type> Parser::parseBasicType() {
     return std::make_shared<VoidType>(state);
   else if (val == "str")
     return std::make_shared<PtrType>(state, std::make_shared<IntType>(state, 8));
-  next.fail() << "invalid type name";
-  return nullptr;
+  // next.fail() << "invalid type name";
+  return std::make_shared<StructType>(state, val);
 }

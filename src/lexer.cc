@@ -96,6 +96,8 @@ Token Lexer::lexNext() {
   }
   auto next = nextCh();
   switch (next) {
+  case '.':
+    return Token(TokenType::DOT, closeSpan());
   case '(':
     return Token(TokenType::OPEN_PAREN, closeSpan());
   case ')':
@@ -108,13 +110,23 @@ Token Lexer::lexNext() {
     return Token(TokenType::OPEN_SQUARE, closeSpan());
   case ']':
     return Token(TokenType::CLOSE_SQUARE, closeSpan());
+  case '&':
+    return Token(TokenType::AND, closeSpan());
   case '+':
+    if (eat('='))
+      return Token(TokenType::ADD_EQ, closeSpan());
     return Token(TokenType::ADD, closeSpan());
   case '-':
+    if (eat('='))
+      return Token(TokenType::SUB_EQ, closeSpan());
     return Token(TokenType::SUB, closeSpan());
   case '*':
+    if (eat('='))
+      return Token(TokenType::MUL_EQ, closeSpan());
     return Token(TokenType::MUL, closeSpan());
   case '/':
+    if (eat('='))
+      return Token(TokenType::DIV_EQ, closeSpan());
     if (peekCh() == '/') {
       consume(notNL);
       closeSpan();
@@ -166,8 +178,12 @@ Token Lexer::lexNext() {
       return Token(TokenType::ELSE, closeSpan());
     else if (v == "while")
       return Token(TokenType::WHILE, closeSpan());
+    else if (v == "for")
+      return Token(TokenType::FOR, closeSpan());
     else if (v == "let")
       return Token(TokenType::LET, closeSpan());
+    else if (v == "struct")
+      return Token(TokenType::STRUCT, closeSpan());
     else if (v == "return")
       return Token(TokenType::RETURN, closeSpan());
     return Token(TokenType::IDENT, closeSpan());

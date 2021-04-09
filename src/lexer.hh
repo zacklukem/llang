@@ -24,6 +24,10 @@ enum TokenType {
   SUB,
   MUL,
   DIV,
+  ADD_EQ,
+  SUB_EQ,
+  MUL_EQ,
+  DIV_EQ,
   EQ,
   DEQ,
   LT,
@@ -37,12 +41,16 @@ enum TokenType {
   IF,
   ELSE,
   WHILE,
+  FOR,
   RETURN,
   FLOAT,
   INT,
   SEMICOLON,
   LET,
-  STRING
+  STRING,
+  STRUCT,
+  DOT,
+  AND
 };
 
 class Token {

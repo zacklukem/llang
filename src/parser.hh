@@ -14,7 +14,8 @@ public:
       : source(source), lexer(source), state(state){};
 
   std::unique_ptr<Document> parseDocument();
-  std::unique_ptr<FunctionDecl> parseFunction();
+  std::unique_ptr<Node> parseFunction();
+  std::unique_ptr<Node> parseStructDecl();
 
   Block parseBlock();
   std::unique_ptr<Statement> parseStatement();
@@ -22,6 +23,7 @@ public:
   std::unique_ptr<Statement> parseIfStatement();
   std::unique_ptr<Statement> parseLetStatement();
   std::unique_ptr<Statement> parseWhileStatement();
+  std::unique_ptr<Statement> parseForStatement();
 
   std::unique_ptr<Expression> parseExpression();
   std::unique_ptr<Expression> parseAssign();
@@ -31,7 +33,9 @@ public:
   std::unique_ptr<Expression> parseUnary();
   std::unique_ptr<Expression> parseFunctionCall();
   std::unique_ptr<Expression> parseArrayAccess();
+  std::unique_ptr<Expression> parseDotOp();
   std::unique_ptr<Expression> parsePrimary();
+  std::unique_ptr<Expression> parseVariable();
 
   std::shared_ptr<Type> parseTypeName();
   std::shared_ptr<Type> parseBasicType();

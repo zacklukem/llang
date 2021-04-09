@@ -5,6 +5,7 @@ set(TEST_SOURCES
   tests/lexer.cc
   tests/source.cc
   tests/parser.cc
+  src/gen.cc
   src/ast.cc
   src/lexer.cc
   src/source.cc

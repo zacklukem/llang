@@ -56,10 +56,11 @@ SET(CMAKE_CXX_FLAGS "-g")
 
 set(SOURCES
   src/main.cc
-  src/ast.cc
+  src/gen.cc
   src/lexer.cc
   src/source.cc
   src/parser.cc
+  src/ast.cc
 )
 set(INCLUDE_DIRS
   src/

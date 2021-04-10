@@ -25,8 +25,11 @@ function fib(ms: MyStruct*): void {
 }
 
 function main(argc: i64, argv: str*): i64 {
-  let init: MyStruct;
-  init.n = 10;
+  let init: MyStruct = MyStruct {
+    a: 1,
+    b: 1,
+    n: 10,
+  };
   fib(&init)
   return 0
 }

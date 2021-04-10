@@ -33,10 +33,15 @@ llvm::Type* VoidType::codegen() { return llvm::Type::getVoidTy(*state->ctx); }
 llvm::Type* StructType::codegen() { return state->structures[name].first; }
 
 llvm::AllocaInst* createAlloca(std::shared_ptr<State> state, llvm::Function* f,
-                               std::weak_ptr<Type> t, llvm::StringRef name) {
+                               llvm::Type* t, llvm::StringRef name) {
   llvm::IRBuilder<> builder(&f->getEntryBlock(), f->getEntryBlock().begin());
+  return builder.CreateAlloca(t, 0, name);
+}
+
+llvm::AllocaInst* createAlloca(std::shared_ptr<State> state, llvm::Function* f,
+                               std::weak_ptr<Type> t, llvm::StringRef name) {
   if (auto ty = t.lock()) {
-    return builder.CreateAlloca(ty->codegen(), 0, name);
+    return createAlloca(state, f, ty->codegen(), name);
   } else {
     throw "bad stuff";
   }
@@ -166,6 +171,17 @@ llvm::Value* StringLiteral::codegen() { return state->builder->CreateGlobalStrin
 
 llvm::Value* IntLiteral::codegen() {
   return llvm::ConstantInt::get(*state->ctx, llvm::APInt(64, value, true));
+}
+
+llvm::Value* StructLiteral::codegen() {
+  auto parent = state->builder->GetInsertBlock()->getParent();
+  auto str = state->structures[name];
+  auto alloca = createAlloca(state, parent, str.first, name);
+  for (auto& field : fields) {
+    auto gep = state->builder->CreateStructGEP(alloca, str.second[field.first]);
+    state->builder->CreateStore(field.second->codegen(), gep);
+  }
+  return state->builder->CreateLoad(alloca);
 }
 
 llvm::Value* LetStatement::codegen() {

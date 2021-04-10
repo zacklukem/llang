@@ -36,6 +36,7 @@ public:
   std::unique_ptr<Expression> parseDotOp();
   std::unique_ptr<Expression> parsePrimary();
   std::unique_ptr<Expression> parseVariable();
+  std::unique_ptr<Expression> parseStructInit();
 
   std::shared_ptr<Type> parseTypeName();
   std::shared_ptr<Type> parseBasicType();

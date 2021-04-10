@@ -366,6 +366,8 @@ std::unique_ptr<Expression> Parser::parsePrimary() {
       return parseFunctionCall();
     else if (lexer.peek(1).type == TokenType::OPEN_SQUARE)
       return parseArrayAccess();
+    else if (lexer.peek(1).type == TokenType::OPEN_BRACE)
+      return parseStructInit();
     else
       return parseVariable();
   }
@@ -442,6 +444,26 @@ std::unique_ptr<Expression> Parser::parseVariable() {
   auto next = lexer.next();
   next.expect(TokenType::IDENT);
   return std::make_unique<VariableExpr>(state, next.value.getValue());
+}
+
+std::unique_ptr<Expression> Parser::parseStructInit() {
+  auto struct_name = lexer.next();
+  struct_name.expect(TokenType::IDENT) << "Expected ident";
+  lexer.next().expect(TokenType::OPEN_BRACE) << "Expected open brace";
+  auto out = std::make_unique<StructLiteral>(state, struct_name.value.getValue());
+  // parse fields
+  while (!lexer.peekEq(TokenType::CLOSE_BRACE)) {
+    auto name = lexer.next();
+    name.expect(TokenType::IDENT) << "expected identifier";
+    lexer.next().expect(TokenType::COLON) << "expected colon";
+    auto expr = parseExpression();
+    // parse expression
+    lexer.next().expect(TokenType::COMMA);
+    out->fields.push_back(std::make_pair(name.value.getValue(), std::move(expr)));
+    // add field
+  }
+  lexer.next().expect(TokenType::CLOSE_BRACE) << "Unexpected token (expected '}')";
+  return std::move(out);
 }
 
 std::shared_ptr<Type> Parser::parseTypeName() {

@@ -288,6 +288,15 @@ public:
   virtual llvm::Value* codegen() override;
 };
 
+class StructLiteral : public Expression {
+public:
+  std::vector<std::pair<std::string, std::unique_ptr<Expression>>> fields;
+  std::string name;
+
+  StructLiteral(std::shared_ptr<State> state, std::string name) : Expression(state), name(name){};
+  virtual llvm::Value* codegen() override;
+};
+
 class ProtoFunc : public Node {
 public:
   std::string name;

@@ -188,6 +188,8 @@ Token Lexer::lexNext() {
       return Token(TokenType::STRUCT, closeSpan());
     else if (v == "return")
       return Token(TokenType::RETURN, closeSpan());
+    else if (v == "import")
+      return Token(TokenType::IMPORT, closeSpan());
     return Token(TokenType::IDENT, closeSpan());
   }
 

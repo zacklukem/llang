@@ -51,7 +51,8 @@ enum TokenType {
   STRUCT,
   DOT,
   AND,
-  SUB_GT
+  SUB_GT,
+  IMPORT
 };
 
 class Token {

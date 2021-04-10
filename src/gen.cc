@@ -30,7 +30,7 @@ llvm::Type* FloatType::codegen() {
 }
 llvm::Type* VoidType::codegen() { return llvm::Type::getVoidTy(*state->ctx); }
 
-llvm::Type* StructType::codegen() { return state->structures[name].first; }
+llvm::Type* StructType::codegen() { return state->structures[name.str()].first; }
 
 llvm::AllocaInst* createAlloca(std::shared_ptr<State> state, llvm::Function* f,
                                llvm::Type* t, llvm::StringRef name) {
@@ -131,7 +131,7 @@ llvm::Value* DotExpr::codegen() {
   auto left = lhs->codegen();
   state->unsetAddrMode(c);
   auto name = left->getType()->getPointerElementType()->getStructName().str();
-  auto gep = state->builder->CreateStructGEP(left, state->structures[name].second[rhs]);
+  auto gep = state->builder->CreateStructGEP(left, state->structures[name].second[rhs.str()]);
   if (state->getAddrMode()) {
     return gep;
   }
@@ -139,7 +139,7 @@ llvm::Value* DotExpr::codegen() {
 }
 
 llvm::Value* CallExpr::codegen() {
-  auto callee = state->mod->getFunction(target);
+  auto callee = state->mod->getFunction(target.str());
   std::vector<llvm::Value*> args_val;
   std::transform(args.begin(), args.end(), std::back_inserter(args_val),
                  [](auto& arg) { return arg->codegen(); });
@@ -156,7 +156,7 @@ llvm::Value* ArrayAccessExpr::codegen() {
 }
 
 llvm::Value* VariableExpr::codegen() {
-  auto v = state->named_values[value];
+  auto v = state->named_values[value.str()];
   if (state->getAddrMode()) {
     return v.first;
   }
@@ -164,21 +164,23 @@ llvm::Value* VariableExpr::codegen() {
 }
 
 llvm::Value* FloatLiteral::codegen() {
-  return llvm::ConstantFP::get(*state->ctx, llvm::APFloat(value));
+  auto val = std::stod(value.str());
+  return llvm::ConstantFP::get(*state->ctx, llvm::APFloat(val));
 }
 
-llvm::Value* StringLiteral::codegen() { return state->builder->CreateGlobalString(value); }
+llvm::Value* StringLiteral::codegen() { return state->builder->CreateGlobalString(value.str()); }
 
 llvm::Value* IntLiteral::codegen() {
-  return llvm::ConstantInt::get(*state->ctx, llvm::APInt(64, value, true));
+  auto val = std::stoll(value.str());
+  return llvm::ConstantInt::get(*state->ctx, llvm::APInt(64, val, true));
 }
 
 llvm::Value* StructLiteral::codegen() {
   auto parent = state->builder->GetInsertBlock()->getParent();
-  auto str = state->structures[name];
-  auto alloca = createAlloca(state, parent, str.first, name);
+  auto str = state->structures[name.str()];
+  auto alloca = createAlloca(state, parent, str.first, name.str());
   for (auto& field : fields) {
-    auto gep = state->builder->CreateStructGEP(alloca, str.second[field.first]);
+    auto gep = state->builder->CreateStructGEP(alloca, str.second[field.first.str()]);
     state->builder->CreateStore(field.second->codegen(), gep);
   }
   return state->builder->CreateLoad(alloca);
@@ -186,9 +188,9 @@ llvm::Value* StructLiteral::codegen() {
 
 llvm::Value* LetStatement::codegen() {
   auto parent = state->builder->GetInsertBlock()->getParent();
-  auto alloca_inst = createAlloca(state, parent, type, name);
+  auto alloca_inst = createAlloca(state, parent, type, name.str());
 
-  state->named_values[name] = std::make_pair(alloca_inst, type->codegen());
+  state->named_values[name.str()] = std::make_pair(alloca_inst, type->codegen());
 
   if (rhs.has_value()) {
     auto val = rhs.value()->codegen();
@@ -299,11 +301,11 @@ llvm::Function* ProtoFunc::proto_codegen() {
                  [](auto& arg) { return arg.first->codegen(); });
 
   auto t = llvm::FunctionType::get(return_type->codegen(), args_type, false);
-  auto f = llvm::Function::Create(t, llvm::Function::ExternalLinkage, name, *state->mod);
+  auto f = llvm::Function::Create(t, llvm::Function::ExternalLinkage, name.str(), *state->mod);
 
   auto i = 0;
   for (auto& arg : f->args())
-    arg.setName(args.at(i++).second);
+    arg.setName(args.at(i++).second.str());
 
   return f;
 }
@@ -311,7 +313,7 @@ llvm::Function* ProtoFunc::proto_codegen() {
 llvm::Value* ExternDecl::codegen() { return proto->codegen(); }
 
 llvm::Value* FunctionDecl::codegen() {
-  auto f = state->mod->getFunction(proto->name);
+  auto f = state->mod->getFunction(proto->name.str());
   if (!f)
     f = proto->proto_codegen();
 
@@ -345,15 +347,15 @@ llvm::Value* StructProto::codegen() {
   std::transform(fields.begin(), fields.end(), std::back_inserter(elements),
                  [](auto& t) { return t.second->codegen(); });
 
-  auto str = llvm::StructType::create(elements, name);
+  auto str = llvm::StructType::create(elements, name.str());
   std::map<std::string, size_t> mm;
 
   int i = 0;
   for (auto& field : fields) {
-    mm[field.first] = i;
+    mm[field.first.str()] = i;
     i++;
   }
 
-  state->structures[name] = std::make_pair(str, mm);
+  state->structures[name.str()] = std::make_pair(str, mm);
   return nullptr;
 }

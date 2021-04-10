@@ -36,7 +36,8 @@ bool Source::debugPrintMessages() const {
     std::cout << (path.empty() ? "dummy/path/to/file.ext" : path) << ":" << location.first << ":"
               << location.second << "\n";
     std::cout << trimmed << "\n";
-    std::cout << std::string(location.second - 1 - (line.size() - trimmed.size()), ' ') << "^";
+    std::cout << std::string(location.second - 1 - (line.size() - trimmed.size()), ' ');
+    for (int i = 0; i < message->span.length; i++) std::cout << '^';
     std::cout << "  " << message->message.str() << "\n";
   }
   return true;
@@ -92,10 +93,6 @@ Span Span::operator+(const Span& other) const {
 
   const Span& first = other.start < this->start ? other : *this;
   const Span& second = other.start < this->start ? *this : other;
-
-  if (first.start + first.length != second.start) {
-    throw std::runtime_error("Spans must be adjacent to join");
-  }
 
   return Span(source, first.start, first.length + second.length);
 }

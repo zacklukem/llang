@@ -33,6 +33,7 @@ public:
   Span(std::shared_ptr<Source> source, std::size_t start, std::size_t length)
       : start(start), length(length), source(source) {}
   std::string getValue() const;
+  inline std::string str() const {return getValue();};
   std::ostream& expect(bool assertion, MessageType type = MessageType::ERROR);
   std::ostream& fail(MessageType type = MessageType::ERROR);
   Span operator+(const Span& other) const;

@@ -10,6 +10,7 @@ set(TEST_SOURCES
   src/lexer.cc
   src/source.cc
   src/parser.cc
+  src/span_logic.cc
 )
 
 add_executable(test_llang ${TEST_SOURCES})

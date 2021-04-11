@@ -97,6 +97,7 @@ public:
   static bool classof(const Type* s) { return s->kind == TK_VOID_TYPE; };
 };
 
+// Should have done a visitor pattern (╥﹏╥)
 class Node {
 public:
   Node(std::shared_ptr<State> state) : state(state){};
@@ -104,7 +105,7 @@ public:
   std::shared_ptr<State> state;
   virtual ~Node(){};
   virtual llvm::Value* codegen() = 0;
-  virtual void print(std::ostream& target) const {};
+  virtual void print(std::ostream& target) const = 0;
   virtual Span span() const = 0;
   virtual std::shared_ptr<Type> verify() = 0;
 };
@@ -115,6 +116,7 @@ public:
   Document(std::shared_ptr<State> state) : Node(state){};
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
+  virtual void print(std::ostream& target) const override;
   virtual std::shared_ptr<Type> verify() override;
 };
 
@@ -134,6 +136,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class Expression : public Statement {
@@ -156,6 +159,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class ReturnStatement : public Statement {
@@ -173,6 +177,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class IfStatement : public Statement {
@@ -190,6 +195,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class WhileStatement : public Statement {
@@ -207,6 +213,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class ForStatement : public Statement {
@@ -230,6 +237,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class AssignExpr : public Expression {
@@ -247,6 +255,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class BinaryExpr : public Expression {
@@ -266,6 +275,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class UnaryExpr : public Expression {
@@ -284,6 +294,7 @@ public:
   virtual std::unique_ptr<Expression> clone() const override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class CallExpr : public Expression {
@@ -297,6 +308,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class VariableExpr : public Expression {
@@ -308,6 +320,7 @@ public:
   virtual std::unique_ptr<Expression> clone() const override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class DotExpr : public Expression {
@@ -324,6 +337,7 @@ public:
   virtual std::unique_ptr<Expression> clone() const override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class ArrayAccessExpr : public Expression {
@@ -339,6 +353,7 @@ public:
   virtual std::unique_ptr<Expression> clone() const override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class FloatLiteral : public Expression {
@@ -349,6 +364,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class StringLiteral : public Expression {
@@ -359,6 +375,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class IntLiteral : public Expression {
@@ -369,6 +386,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class StructLiteral : public Expression {
@@ -380,6 +398,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class ProtoFunc : public Node {
@@ -398,6 +417,7 @@ public:
   llvm::Function* proto_codegen();
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class ExternDecl : public Node {
@@ -408,6 +428,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class FunctionDecl : public Node {
@@ -421,6 +442,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class StructProto : public Node {
@@ -434,6 +456,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 class ImportDecl : public Node {
@@ -448,6 +471,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
   virtual std::shared_ptr<Type> verify() override;
+  virtual void print(std::ostream& target) const override;
 };
 
 } // namespace llang

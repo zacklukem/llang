@@ -11,6 +11,7 @@ build/
 Makefile.bak
 run-clang-format.py
 test.c
+test.cc
 grammar.txt
 output.o
 a.out

@@ -8,9 +8,16 @@ namespace llang {
 
 class State {
 public:
+  // Verify stage
   std::unique_ptr<llvm::LLVMContext> ctx;
   std::unique_ptr<llvm::Module> mod;
   std::unique_ptr<llvm::IRBuilder<>> builder;
+  std::map<std::string, std::shared_ptr<Type>> v_named_values;
+  std::map<std::string, StructProto*> v_structures;
+  std::shared_ptr<Type> ret_type = nullptr;
+  std::map<std::string, ProtoFunc*> v_funcs;
+
+  // Gen stage
   std::map<std::string, std::pair<llvm::AllocaInst*, llvm::Type*>> named_values;
   std::map<std::string, std::pair<llvm::StructType*, std::map<std::string, size_t>>> structures;
   inline bool setAddrMode() {

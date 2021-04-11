@@ -66,6 +66,7 @@ int main(int argc, char** argv) {
   llang::Parser parser(source, state);
 
   auto func = parser.parseDocument();
+  func->verify();
   if (!source->debugPrintMessages()) {
     func->codegen();
   } else {

@@ -1,13 +1,101 @@
 // Copyright 2020 Zachary Mayhew
 #pragma once
 
-#include "state.hh"
 #include "source.hh"
+namespace llang {
+class Type;
+class StructProto;
+class ProtoFunc;
+} // namespace llang
+#include "state.hh"
 #include <llvm/IR/Value.h>
 #include <memory>
 #include <variant>
 
 namespace llang {
+
+class Type {
+public:
+  enum TypeKind { TK_PTR_TYPE, TK_INT_TYPE, TK_FLOAT_TYPE, TK_STRUCT_TYPE, TK_VOID_TYPE };
+  const TypeKind kind;
+  Type(TypeKind kind, std::shared_ptr<State> state) : kind(kind), state(state){};
+  Type() = delete;
+  std::shared_ptr<State> state;
+  virtual ~Type(){};
+  virtual llvm::Type* codegen() = 0;
+  virtual Span span() const = 0;
+  virtual std::string str() const = 0;
+  virtual bool operator==(const Type& rhs) const = 0;
+  inline bool operator!=(const Type& rhs) const { return !(*this == rhs); };
+};
+
+class PtrType : public Type {
+public:
+  std::shared_ptr<Type> type;
+  Span mul;
+  PtrType(std::shared_ptr<State> state, std::shared_ptr<Type> type, Span mul)
+      : Type(Type::TypeKind::TK_PTR_TYPE, state), type(std::move(type)), mul(mul){};
+  PtrType() = delete;
+  virtual llvm::Type* codegen() override;
+  virtual Span span() const override;
+  virtual std::string str() const override;
+  virtual bool operator==(const Type& rhs) const override;
+  static bool classof(const Type* s) { return s->kind == TK_PTR_TYPE; };
+};
+
+class IntType : public Type {
+public:
+  uint8_t size;
+  Span name;
+  IntType(std::shared_ptr<State> state, uint8_t size, Span name)
+      : Type(Type::TypeKind::TK_INT_TYPE, state), size(size), name(name){};
+  IntType() = delete;
+  virtual llvm::Type* codegen() override;
+  virtual Span span() const override;
+  virtual std::string str() const override;
+  virtual bool operator==(const Type& rhs) const override;
+  static bool classof(const Type* s) { return s->kind == TK_INT_TYPE; };
+};
+
+class FloatType : public Type {
+public:
+  uint8_t size;
+  Span name;
+  FloatType(std::shared_ptr<State> state, uint8_t size, Span name)
+      : Type(Type::TypeKind::TK_FLOAT_TYPE, state), size(size), name(name){};
+  FloatType() = delete;
+  virtual llvm::Type* codegen() override;
+  virtual Span span() const override;
+  virtual std::string str() const override;
+  virtual bool operator==(const Type& rhs) const override;
+  static bool classof(const Type* s) { return s->kind == TK_FLOAT_TYPE; };
+};
+
+class StructType : public Type {
+public:
+  Span name;
+  StructType(std::shared_ptr<State> state, Span name)
+      : Type(Type::TypeKind::TK_STRUCT_TYPE, state), name(name){};
+  StructType() = delete;
+  virtual llvm::Type* codegen() override;
+  virtual Span span() const override;
+  virtual std::string str() const override;
+  virtual bool operator==(const Type& rhs) const override;
+  static bool classof(const Type* s) { return s->kind == TK_STRUCT_TYPE; };
+};
+
+class VoidType : public Type {
+public:
+  Span name;
+  VoidType(std::shared_ptr<State> state, Span name)
+      : Type(Type::TypeKind::TK_VOID_TYPE, state), name(name){};
+  VoidType() = delete;
+  virtual llvm::Type* codegen() override;
+  virtual Span span() const override;
+  virtual std::string str() const override;
+  virtual bool operator==(const Type& rhs) const override;
+  static bool classof(const Type* s) { return s->kind == TK_VOID_TYPE; };
+};
 
 class Node {
 public:
@@ -18,6 +106,7 @@ public:
   virtual llvm::Value* codegen() = 0;
   virtual void print(std::ostream& target) const {};
   virtual Span span() const = 0;
+  virtual std::shared_ptr<Type> verify() = 0;
 };
 
 class Document : public Node {
@@ -26,65 +115,7 @@ public:
   Document(std::shared_ptr<State> state) : Node(state){};
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
-};
-
-class Type {
-public:
-  Type(std::shared_ptr<State> state) : state(state){};
-  Type() = delete;
-  std::shared_ptr<State> state;
-  virtual ~Type(){};
-  virtual llvm::Type* codegen() = 0;
-  virtual Span span() const = 0;
-};
-
-class PtrType : public Type {
-public:
-  std::shared_ptr<Type> type;
-  Span mul;
-  PtrType(std::shared_ptr<State> state, std::shared_ptr<Type> type, Span mul)
-      : Type(state), type(std::move(type)), mul(mul){};
-  PtrType() = delete;
-  virtual llvm::Type* codegen() override;
-  virtual Span span() const override;
-};
-
-class IntType : public Type {
-public:
-  uint8_t size;
-  Span name;
-  IntType(std::shared_ptr<State> state, uint8_t size, Span name) : Type(state), size(size), name(name){};
-  IntType() = delete;
-  virtual llvm::Type* codegen() override;
-  virtual Span span() const override;
-};
-
-class FloatType : public Type {
-public:
-  uint8_t size;
-  Span name;
-  FloatType(std::shared_ptr<State> state, uint8_t size, Span name) : Type(state), size(size), name(name){};
-  FloatType() = delete;
-  virtual llvm::Type* codegen() override;
-  virtual Span span() const override;
-};
-
-class StructType : public Type {
-public:
-  Span name;
-  StructType(std::shared_ptr<State> state, Span name) : Type(state), name(name){};
-  StructType() = delete;
-  virtual llvm::Type* codegen() override;
-  virtual Span span() const override;
-};
-
-class VoidType : public Type {
-public:
-  Span name;
-  VoidType(std::shared_ptr<State> state, Span name) : Type(state), name(name){};
-  VoidType() = delete;
-  virtual llvm::Type* codegen() override;
-  virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class Statement : public Node {
@@ -102,12 +133,13 @@ public:
 
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class Expression : public Statement {
 public:
   Expression(std::shared_ptr<State> state) : Statement(state){};
-  virtual std::unique_ptr<Expression> clone() const {return nullptr;};
+  virtual std::unique_ptr<Expression> clone() const { return nullptr; };
 };
 
 class LetStatement : public Statement {
@@ -123,6 +155,7 @@ public:
 
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class ReturnStatement : public Statement {
@@ -130,7 +163,8 @@ public:
   Span ident;
   std::optional<std::unique_ptr<Expression>> rhs;
 
-  ReturnStatement(std::shared_ptr<State> state, Span ident, std::optional<std::unique_ptr<Expression>> rhs)
+  ReturnStatement(std::shared_ptr<State> state, Span ident,
+                  std::optional<std::unique_ptr<Expression>> rhs)
       : Statement(state), ident(ident), rhs(std::move(rhs)){};
 
   ReturnStatement(Span ident, std::unique_ptr<Expression> rhs)
@@ -138,6 +172,7 @@ public:
 
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class IfStatement : public Statement {
@@ -148,11 +183,13 @@ public:
   std::vector<IfPair> pairs;
   std::optional<Block> else_block;
 
-  IfStatement(std::shared_ptr<State> state, Span ident, std::optional<Block> else_block = std::nullopt)
+  IfStatement(std::shared_ptr<State> state, Span ident,
+              std::optional<Block> else_block = std::nullopt)
       : Statement(state), ident(ident), else_block(std::move(else_block)) {}
 
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class WhileStatement : public Statement {
@@ -161,13 +198,15 @@ public:
   std::unique_ptr<Expression> cond;
   Block body;
 
-  WhileStatement(std::shared_ptr<State> state, Span ident, std::unique_ptr<Expression> cond, Block body)
+  WhileStatement(std::shared_ptr<State> state, Span ident, std::unique_ptr<Expression> cond,
+                 Block body)
       : Statement(state), ident(ident), cond(std::move(cond)), body(std::move(body)){};
   WhileStatement(Span ident, std::unique_ptr<Expression> cond, Block body)
       : Statement(cond->state), ident(ident), cond(std::move(cond)), body(std::move(body)){};
 
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class ForStatement : public Statement {
@@ -181,15 +220,16 @@ public:
 
   ForStatement(std::shared_ptr<State> state, Span ident, std::unique_ptr<Statement> init,
                std::unique_ptr<Expression> cond, std::unique_ptr<Expression> inc, Block body)
-      : Statement(state), ident(ident), init(std::move(init)), cond(std::move(cond)), inc(std::move(inc)),
-        body(std::move(body)){};
+      : Statement(state), ident(ident), init(std::move(init)), cond(std::move(cond)),
+        inc(std::move(inc)), body(std::move(body)){};
   ForStatement(std::unique_ptr<Statement> init, Span ident, std::unique_ptr<Expression> cond,
                std::unique_ptr<Expression> inc, Block body)
-      : Statement(cond->state), ident(ident), init(std::move(init)), cond(std::move(cond)), inc(std::move(inc)),
-        body(std::move(body)){};
+      : Statement(cond->state), ident(ident), init(std::move(init)), cond(std::move(cond)),
+        inc(std::move(inc)), body(std::move(body)){};
 
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class AssignExpr : public Expression {
@@ -206,6 +246,7 @@ public:
 
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class BinaryExpr : public Expression {
@@ -224,6 +265,7 @@ public:
 
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class UnaryExpr : public Expression {
@@ -241,6 +283,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual std::unique_ptr<Expression> clone() const override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class CallExpr : public Expression {
@@ -248,12 +291,12 @@ public:
   Span target;
   std::vector<std::unique_ptr<Expression>> args;
 
-  CallExpr(std::shared_ptr<State> state, Span target,
-           std::vector<std::unique_ptr<Expression>> args)
+  CallExpr(std::shared_ptr<State> state, Span target, std::vector<std::unique_ptr<Expression>> args)
       : Expression(state), target(target), args(std::move(args)){};
 
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class VariableExpr : public Expression {
@@ -264,6 +307,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual std::unique_ptr<Expression> clone() const override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class DotExpr : public Expression {
@@ -279,6 +323,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual std::unique_ptr<Expression> clone() const override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class ArrayAccessExpr : public Expression {
@@ -293,6 +338,7 @@ public:
   virtual llvm::Value* codegen() override;
   virtual std::unique_ptr<Expression> clone() const override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class FloatLiteral : public Expression {
@@ -302,16 +348,17 @@ public:
   FloatLiteral(std::shared_ptr<State> state, Span value) : Expression(state), value(value){};
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class StringLiteral : public Expression {
 public:
   Span value;
 
-  StringLiteral(std::shared_ptr<State> state, Span value)
-      : Expression(state), value(value){};
+  StringLiteral(std::shared_ptr<State> state, Span value) : Expression(state), value(value){};
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class IntLiteral : public Expression {
@@ -321,6 +368,7 @@ public:
   IntLiteral(std::shared_ptr<State> state, Span value) : Expression(state), value(value){};
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class StructLiteral : public Expression {
@@ -331,6 +379,7 @@ public:
   StructLiteral(std::shared_ptr<State> state, Span name) : Expression(state), name(name){};
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class ProtoFunc : public Node {
@@ -342,11 +391,13 @@ public:
 
   ProtoFunc(std::shared_ptr<State> state, Span ident, Span name, std::shared_ptr<Type> return_type,
             std::vector<std::pair<std::shared_ptr<Type>, Span>> args)
-      : Node(state), ident(ident), name(name), return_type(std::move(return_type)), args(std::move(args)){};
+      : Node(state), ident(ident), name(name), return_type(std::move(return_type)),
+        args(std::move(args)){};
 
   virtual llvm::Value* codegen() override { return proto_codegen(); };
   llvm::Function* proto_codegen();
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class ExternDecl : public Node {
@@ -356,6 +407,7 @@ public:
       : Node(state), proto(std::move(proto)) {}
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class FunctionDecl : public Node {
@@ -368,6 +420,7 @@ public:
 
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class StructProto : public Node {
@@ -375,10 +428,12 @@ public:
   Span ident;
   Span name;
   std::vector<std::pair<Span, std::shared_ptr<Type>>> fields;
-  StructProto(std::shared_ptr<State> state, Span ident, Span name) : Node(state), ident(ident), name(name){};
+  StructProto(std::shared_ptr<State> state, Span ident, Span name)
+      : Node(state), ident(ident), name(name){};
 
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 class ImportDecl : public Node {
@@ -388,6 +443,7 @@ public:
 
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;
+  virtual std::shared_ptr<Type> verify() override;
 };
 
 } // namespace llang

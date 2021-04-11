@@ -2,6 +2,7 @@ function puts(string: str): void;
 function malloc(size: i64): void*;
 function free(ptr: str): void;
 function sprintf(ptr: str, val: str, t: i64): i64;
+// function fib_rec(n: i64): i64;
 
 struct MyStruct {
   a: i64;

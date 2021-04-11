@@ -11,6 +11,7 @@ set(TEST_SOURCES
   src/source.cc
   src/parser.cc
   src/span_logic.cc
+  src/verify.cc
 )
 
 add_executable(test_llang ${TEST_SOURCES})

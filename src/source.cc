@@ -11,6 +11,17 @@ public:
   int overflow(int c) { return c; }
 };
 
+enum Color {
+  RED = 31,
+  BLUE = 34,
+  YELLOW = 33,
+  GREEN = 32,
+};
+
+std::string c(const std::string& str, Color c, bool bold = true) {
+  return (bold ? "\033[1;" : "\033[0;") + std::to_string(c) + "m" + str + "\033[0m";
+}
+
 // cant be const unfortunately
 static auto dummy_buffer = NullBuffer();
 static auto dummy_stream = std::ostream(&dummy_buffer);
@@ -24,20 +35,20 @@ bool Source::debugPrintMessages() const {
     auto trimmed = boost::trim_left_copy(line);
     switch (message->type) {
     case ERROR:
-      std::cout << "\033[1;31merror: \033[0m";
+      std::cout << c("error: ", RED);
       break;
     case NOTE:
-      std::cout << "\033[1;34mnote: \033[0m";
+      std::cout << c("note: ", BLUE);
       break;
     case WARNING:
-      std::cout << "\033[1;33mwarning: \033[0m";
+      std::cout << c("warning: ", YELLOW);
       break;
     }
     std::cout << (path.empty() ? "dummy/path/to/file.ext" : path) << ":" << location.first << ":"
               << location.second << "\n";
     std::cout << trimmed << "\n";
     std::cout << std::string(location.second - 1 - (line.size() - trimmed.size()), ' ');
-    for (int i = 0; i < message->span.length; i++) std::cout << '^';
+    std::cout << c(std::string(message->span.length, '^'), GREEN);
     std::cout << "  " << message->message.str() << "\n";
   }
   return true;

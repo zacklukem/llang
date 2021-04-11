@@ -62,6 +62,7 @@ set(SOURCES
   src/parser.cc
   src/ast.cc
   src/span_logic.cc
+  src/verify.cc
 )
 set(INCLUDE_DIRS
   src/

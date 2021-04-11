@@ -439,7 +439,11 @@ public:
 class ImportDecl : public Node {
 public:
   Span file_name;
-  ImportDecl(std::shared_ptr<State> state, Span file_name) : Node(state), file_name(file_name){};
+  std::shared_ptr<Source> file_src;
+  std::unique_ptr<Document> data;
+
+  ImportDecl(std::shared_ptr<State> state, Span file_name, std::shared_ptr<Source> file_src)
+      : Node(state), file_name(file_name), file_src(file_src){};
 
   virtual llvm::Value* codegen() override;
   virtual Span span() const override;

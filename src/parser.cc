@@ -1,8 +1,20 @@
 #include "parser.hh"
 
+#include <fstream>
 #include <iostream>
 
 using namespace llang;
+
+static std::string get_file_contents(const char* filename) {
+  std::ifstream in(filename, std::ios::in | std::ios::binary);
+  if (in) {
+    std::ostringstream contents;
+    contents << in.rdbuf();
+    in.close();
+    return contents.str();
+  }
+  throw errno;
+}
 
 std::unique_ptr<Document> Parser::parseDocument() {
   auto doc = std::make_unique<Document>(state);
@@ -13,6 +25,9 @@ std::unique_ptr<Document> Parser::parseDocument() {
       break;
     case TokenType::STRUCT:
       doc->data.push_back(parseStructDecl());
+      break;
+    case TokenType::IMPORT:
+      doc->data.push_back(parseImport());
       break;
     default:
       lexer.next().fail() << "Unexpected token";
@@ -75,6 +90,28 @@ std::unique_ptr<Node> Parser::parseStructDecl() {
   }
   lexer.next().expect(TokenType::CLOSE_BRACE) << "Unexpected token (expected '}')";
   return std::move(str);
+}
+
+std::unique_ptr<Node> Parser::parseImport() {
+  auto keyword = lexer.next();
+  keyword.expect(TokenType::IMPORT) << "Expected import keyword (internal error)";
+  auto str = lexer.next();
+  str.expect(TokenType::STRING) << "expected file name";
+  auto file_name = std::make_unique<StringLiteral>(state, str.value);
+  auto file_fs = std::filesystem::path(str.value.str());
+  try {
+    std::string file_cont = get_file_contents(file_fs.c_str());
+    auto source = std::make_shared<Source>(file_cont, file_fs);
+    auto out = std::make_unique<ImportDecl>(state, str.value, source);
+
+    Parser p(source, state);
+    out->data = p.parseDocument();
+
+    return std::move(out);
+  } catch (std::exception& e) {
+    str.fail() << "file not found";
+    return nullptr;
+  }
 }
 
 Block Parser::parseBlock() {

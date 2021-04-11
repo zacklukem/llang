@@ -16,6 +16,7 @@ public:
   std::unique_ptr<Document> parseDocument();
   std::unique_ptr<Node> parseFunction();
   std::unique_ptr<Node> parseStructDecl();
+  std::unique_ptr<Node> parseImport();
 
   Block parseBlock();
   std::unique_ptr<Statement> parseStatement();

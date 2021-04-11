@@ -29,10 +29,7 @@ make format # format all files
 ## Example
 
 ```typescript
-function puts(string: str): void;
-function malloc(size: i64): void*;
-function free(ptr: str): void;
-function sprintf(ptr: str, val: str, t: i64): i64;
+import "stl.lll"
 
 struct MyStruct {
   a: i64;

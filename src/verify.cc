@@ -248,4 +248,19 @@ std::shared_ptr<Type> StructProto::verify() {
   return nullptr;
 }
 
-std::shared_ptr<Type> ImportDecl::verify() { return nullptr; }
+std::shared_ptr<Type> ImportDecl::verify() {
+  if (file_src->debugPrintMessages()) { // TODO: probably not great for future to print here
+    file_name.fail() << "errors in included file";
+    return nullptr;
+  }
+
+  for (auto& tls : data->data) {
+    if (auto proto = dynamic_cast<FunctionDecl*>(tls.get())) {
+      proto->proto->verify();
+    } else {
+      tls->verify();
+    }
+  }
+
+  return nullptr;
+}

@@ -1,0 +1,12 @@
+// C standard lib stuff
+function puts(string: str): void;
+function malloc(size: i64): void*;
+function free(ptr: str): void;
+function sprintf(ptr: str, val: str, t: i64): i64;
+
+function puti(t: i64): void {
+  let out: str = "          "
+  sprintf(out, "%lld", t)
+  puts(out)
+  return;
+}

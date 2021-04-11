@@ -359,3 +359,14 @@ llvm::Value* StructProto::codegen() {
   state->structures[name.str()] = std::make_pair(str, mm);
   return nullptr;
 }
+
+llvm::Value* ImportDecl::codegen() {
+  for (auto& tls : data->data) {
+    if (auto proto = dynamic_cast<FunctionDecl*>(tls.get())) {
+      proto->proto->codegen();
+    } else {
+      tls->codegen();
+    }
+  }
+  return nullptr;
+}

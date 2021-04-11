@@ -27,11 +27,11 @@
 #include "parser.hh"
 
 #include <cerrno>
-#include <fstream>
-#include <sstream>
-#include <iostream>
-#include <string>
 #include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
 
 std::string get_file_contents(const char* filename) {
   std::ifstream in(filename, std::ios::in | std::ios::binary);

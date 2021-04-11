@@ -49,7 +49,8 @@ std::shared_ptr<Type> IfStatement::verify() {
     if (!cond_v)
       return nullptr;
     if (!llvm::isa<IntType>(cond_v.get())) {
-      block.first->span().fail() << "expected int type, got " + cond_v->str();;
+      block.first->span().fail() << "expected int type, got " + cond_v->str();
+      ;
     }
   }
   if (else_block.has_value()) {
@@ -218,13 +219,9 @@ std::shared_ptr<Type> StringLiteral::verify() {
   return std::make_shared<PtrType>(state, std::make_shared<IntType>(state, 8, value), value);
 }
 
-std::shared_ptr<Type> IntLiteral::verify() {
-  return std::make_shared<IntType>(state, 64, value);
-}
+std::shared_ptr<Type> IntLiteral::verify() { return std::make_shared<IntType>(state, 64, value); }
 
-std::shared_ptr<Type> StructLiteral::verify() {
-  return std::make_shared<StructType>(state, name);
-}
+std::shared_ptr<Type> StructLiteral::verify() { return std::make_shared<StructType>(state, name); }
 
 std::shared_ptr<Type> ProtoFunc::verify() {
   for (auto& arg : this->args) {
@@ -251,4 +248,4 @@ std::shared_ptr<Type> StructProto::verify() {
   return nullptr;
 }
 
-std::shared_ptr<Type> ImportDecl::verify() {return nullptr;}
+std::shared_ptr<Type> ImportDecl::verify() { return nullptr; }

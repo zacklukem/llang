@@ -32,8 +32,8 @@ llvm::Type* VoidType::codegen() { return llvm::Type::getVoidTy(*state->ctx); }
 
 llvm::Type* StructType::codegen() { return state->structures[name.str()].first; }
 
-llvm::AllocaInst* createAlloca(std::shared_ptr<State> state, llvm::Function* f,
-                               llvm::Type* t, llvm::StringRef name) {
+llvm::AllocaInst* createAlloca(std::shared_ptr<State> state, llvm::Function* f, llvm::Type* t,
+                               llvm::StringRef name) {
   llvm::IRBuilder<> builder(&f->getEntryBlock(), f->getEntryBlock().begin());
   return builder.CreateAlloca(t, 0, name);
 }

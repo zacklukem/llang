@@ -44,8 +44,8 @@ std::unique_ptr<Node> Parser::parseFunction() {
   lexer.next().expect(TokenType::COLON) << "Unexpected token (expected ':')";
   auto return_type = parseTypeName();
 
-  auto proto_func =
-      std::make_unique<ProtoFunc>(state, function_keyword.value, func_name.value, return_type, arguments);
+  auto proto_func = std::make_unique<ProtoFunc>(state, function_keyword.value, func_name.value,
+                                                return_type, arguments);
 
   if (lexer.peekEq(TokenType::SEMICOLON)) {
     lexer.next();
@@ -195,8 +195,8 @@ std::unique_ptr<Statement> Parser::parseForStatement() {
 
   auto body = parseBlock();
 
-  return std::make_unique<ForStatement>(std::move(init), keyword.value, std::move(expr), std::move(inc),
-                                        std::move(body));
+  return std::make_unique<ForStatement>(std::move(init), keyword.value, std::move(expr),
+                                        std::move(inc), std::move(body));
 }
 
 std::unique_ptr<Expression> Parser::parseExpression() { return parseAssign(); }
@@ -355,8 +355,7 @@ std::unique_ptr<Expression> Parser::parseDotOp() {
       break;
     case TokenType::SUB_GT:
       lhs = std::make_unique<DotExpr>(
-          std::make_unique<UnaryExpr>(UnaryExpr::Op::DEREF, std::move(lhs)),
-          ident.value);
+          std::make_unique<UnaryExpr>(UnaryExpr::Op::DEREF, std::move(lhs)), ident.value);
       break;
     default:
       break;
@@ -493,7 +492,8 @@ std::shared_ptr<Type> Parser::parseBasicType() {
   else if (val == "void")
     return std::make_shared<VoidType>(state, next.value);
   else if (val == "str")
-    return std::make_shared<PtrType>(state, std::make_shared<IntType>(state, 8, next.value), next.value);
+    return std::make_shared<PtrType>(state, std::make_shared<IntType>(state, 8, next.value),
+                                     next.value);
   // next.fail() << "invalid type name";
   return std::make_shared<StructType>(state, next.value);
 }

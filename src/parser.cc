@@ -98,7 +98,8 @@ std::unique_ptr<Node> Parser::parseImport() {
   auto str = lexer.next();
   str.expect(TokenType::STRING) << "expected file name";
   auto file_name = std::make_unique<StringLiteral>(state, str.value);
-  auto file_fs = std::filesystem::path(str.value.str());
+  auto file_fs =
+      std::filesystem::path(source->path).parent_path() / std::filesystem::path(str.value.str());
   try {
     std::string file_cont = get_file_contents(file_fs.c_str());
     auto source = std::make_shared<Source>(file_cont, file_fs);

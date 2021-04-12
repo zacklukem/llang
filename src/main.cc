@@ -24,7 +24,9 @@
 #include <memory>
 #include <string>
 
+#include "gen.hh"
 #include "parser.hh"
+#include "verify.hh"
 
 #include <cerrno>
 #include <filesystem>
@@ -66,9 +68,13 @@ int main(int argc, char** argv) {
   llang::Parser parser(source, state);
 
   auto func = parser.parseDocument();
-  func->verify();
+  {
+    auto vv = std::make_shared<llang::VerifyVisitor>(state);
+    func->accept_n(*vv.get());
+  }
   if (!source->debugPrintMessages()) {
-    func->codegen();
+    llang::GenVisitor gv(state);
+    func->accept_n(gv);
   } else {
     return 0;
   }
